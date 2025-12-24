@@ -15,6 +15,14 @@ class User(db.Model):
     def __repr__(self):
         return f"<User {self.username}>"
     
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "username": self.username,
+            "email": self.email
+        }
+    
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
 
