@@ -16,3 +16,11 @@ class Message(db.Model):
 
     def __repr__(self):
         return f"<Message {self.id} by User {self.user_id}>"
+    
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "content": self.content,
+            "timestamp": self.timestamp.isoformat(),
+            "user_id": self.user_id
+        }

@@ -19,3 +19,12 @@ class PrivateMessage(db.Model):
 
     def __repr__(self):
         return f"<PrivateMessage {self.id} in Chat {self.chat_id}>"
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "content": self.content,
+            "timestamp": self.timestamp.isoformat(),
+            "sender_id": self.sender_id,
+            "chat_id": self.chat_id
+        }

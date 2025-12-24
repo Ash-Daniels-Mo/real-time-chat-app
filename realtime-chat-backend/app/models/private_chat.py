@@ -11,5 +11,12 @@ class PrivateChat(db.Model):
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
+    @staticmethod
+    def get_chat_between_users(user1_id, user2_id):
+        return PrivateChat.query.filter(
+            ((PrivateChat.user1_id == user1_id) & (PrivateChat.user2_id == user2_id)) |
+            ((PrivateChat.user1_id == user2_id) & (PrivateChat.user2_id == user1_id))
+        ).first()
+
     def __repr__(self):
         return f"<PrivateChat {self.user1_id}-{self.user2_id}>"
