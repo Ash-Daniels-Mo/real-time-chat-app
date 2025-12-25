@@ -51,6 +51,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
             localStorage.setItem('user', JSON.stringify(user));
 
             router.push('/chat');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
             setError(err.response?.data?.message || 'An error occurred');
         } finally {
