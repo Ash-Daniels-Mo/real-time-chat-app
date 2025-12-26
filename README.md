@@ -14,7 +14,7 @@ This project is a real-time chat application with file-sharing capabilities. It 
 ## Technologies Used
 
 ### Frontend
-- React
+- Next.js
 - Redux (for state management)
 - Socket.IO (for real-time communication)
 - Axios (for API requests)
