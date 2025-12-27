@@ -26,7 +26,24 @@ export default function ChatSidebar({
 }: ChatSidebarProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showUsersModal, setShowUsersModal] = useState(false);
+  const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
   const router = useRouter();
+
+  const fetchUsers = async () => {
+    setLoadingUsers(true);
+    try {
+      const response = await api.get('/users/');
+      setAllUsers(response.data.users.filter((u: User) => u.id !== user.id)); // Exclude current user
+      setShowUsersModal(true);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (_error) {
+      toast.error('Failed to load users');
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
 
   const filteredChats = chats.filter(chat =>
     chat.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -173,8 +190,9 @@ export default function ChatSidebar({
                 onClick={async () => {
                   try {
                     await api.post('/auth/logout');
+                  // eslint-disable-next-line @typescript-eslint/no-unused-vars
                   } catch (error) {
-                    // Ignore error, proceed to clear localStorage
+                    toast.error('Logout failed on server');
                   }
                   localStorage.removeItem('token');
                   localStorage.removeItem('user');
@@ -190,18 +208,97 @@ export default function ChatSidebar({
         </div>
       )}
 
+      {/* Users Modal */}
+      {showUsersModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[80vh] flex flex-col"
+          >
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Start New Conversation
+                </h3>
+                <button
+                  onClick={() => setShowUsersModal(false)}
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <p className="text-sm text-gray-600 mt-1">
+                Select a user to start chatting
+              </p>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4">
+              {allUsers.length === 0 ? (
+                <div className="text-center py-8">
+                  <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                  </div>
+                  <p className="text-gray-500">No users available</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {allUsers.map((chatUser) => (
+                    <motion.div
+                      key={chatUser.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => {
+                        // TODO: Create or navigate to private chat with this user
+                        toast.success(`Starting conversation with ${chatUser.username}`);
+                        setShowUsersModal(false);
+                      }}
+                      className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+                    >
+                      <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
+                        <span className="text-white font-semibold text-sm">
+                          {chatUser.username.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-gray-900 truncate">
+                          {chatUser.username}
+                        </p>
+                        <p className="text-sm text-gray-500 truncate">
+                          {chatUser.email}
+                        </p>
+                      </div>
+                      <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        </div>
+      )}
+
       {/* Floating Action Button */}
       <div className="absolute bottom-6 right-6">
         <motion.button
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
           className="w-14 h-14 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center transition-colors"
-          onClick={() => {
-            // TODO: Open new conversation modal
-            toast.success('New conversation feature coming soon!');
-          }}
+          onClick={fetchUsers}
+          disabled={loadingUsers}
         >
-          <Plus className="w-6 h-6" />
+          {loadingUsers ? (
+            <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          ) : (
+            <Plus className="w-6 h-6" />
+          )}
         </motion.button>
       </div>
     </div>

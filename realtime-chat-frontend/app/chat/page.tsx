@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import { Menu } from 'lucide-react';
 import ChatSidebar from '@/components/ChatSidebar';
 import ChatWindow from '@/components/ChatWindow';
-import { Chat, User, Message } from '@/lib/types';
+import { Chat, User } from '@/lib/types';
 
 export default function ChatPage() {
   const [user, setUser] = useState<User | null>(null);
@@ -26,6 +26,7 @@ export default function ChatPage() {
     }
 
     const parsedUser = JSON.parse(userData);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setUser(parsedUser);
 
     // Mock data for demonstration

@@ -1,10 +1,9 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Paperclip, Phone, Video, MoreVertical } from 'lucide-react';
+import {  AnimatePresence } from 'framer-motion';
+import { Send, Phone, Video, MoreVertical } from 'lucide-react';
 import { Chat, User, Message } from '@/lib/types';
-import { cn } from '@/lib/utils';
 import MessageBubble from '@/components/MessageBubble';
 import MessageInput from '@/components/MessageInput';
 
@@ -69,8 +68,8 @@ export default function ChatWindow({ chat, user }: ChatWindowProps) {
             name: 'sample-image.jpg',
             size: 1024 * 1024 * 2, // 2MB
             type: 'image/jpeg',
-            url: 'https://via.placeholder.com/300x200', // Placeholder image
-            thumbnail: 'https://via.placeholder.com/300x200',
+            url: 'https://placehold.net/4.png', // Placeholder image
+            thumbnail: 'https://placehold.net/4.png',
           },
         },
         {
@@ -97,6 +96,7 @@ export default function ChatWindow({ chat, user }: ChatWindowProps) {
           },
         },
       ];
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setMessages(mockMessages);
     } else {
       setMessages([]);

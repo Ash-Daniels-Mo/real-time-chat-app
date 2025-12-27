@@ -1,8 +1,9 @@
 'use client';
 
-import { FileText, FileImage, File } from 'lucide-react';
+import { FileText, File } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
+import Image from 'next/image';
 import { Message, FileData } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
@@ -95,11 +96,12 @@ function FileAttachment({ file }: { file: FileData }) {
   if (isImage) {
     return (
       <div className="space-y-2">
-        <img
+        <Image
           src={file.url}
           alt={file.name}
+          width={300}
+          height={300}
           className="max-w-full h-auto rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-          style={{ maxWidth: '300px', maxHeight: '300px' }}
           onClick={() => window.open(file.url, '_blank')}
         />
       </div>

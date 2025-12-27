@@ -88,6 +88,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
                 toast.success('Login successful!');
                 router.push('/chat');
             }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
             setError(err.response?.data?.message || 'An error occurred');
         } finally {
