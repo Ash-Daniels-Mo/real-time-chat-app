@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { Eye, EyeOff, Mail, Lock, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { api } from '@/lib/api';
+import toast from 'react-hot-toast';
 
 interface AuthFormProps {
     mode: 'login' | 'register';
@@ -26,32 +27,67 @@ export default function AuthForm({ mode }: AuthFormProps) {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
-        setIsLoading(true);
 
+        // Validation
+        if (mode === 'register') {
+            if (!formData.username.trim()) {
+                setError('Username is required');
+                return;
+            }
+            if (!formData.email.trim()) {
+                setError('Email is required');
+                return;
+            }
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+                setError('Please enter a valid email address');
+                return;
+            }
+            if (formData.password.length < 6) {
+                setError('Password must be at least 6 characters long');
+                return;
+            }
+            if (formData.password !== formData.confirmPassword) {
+                setError('Passwords do not match');
+                return;
+            }
+        } else {
+            if (!formData.username.trim()) {
+                setError('Username is required');
+                return;
+            }
+            if (formData.username.length < 4) {
+                setError('Username must be at least 4 characters long');
+                return;
+            }
+            if (formData.password.length < 6) {
+                setError('Password must be at least 6 characters long');
+                return;
+            }
+        }
+
+        setIsLoading(true);
         try {
             if (mode === 'register') {
-                if (formData.password !== formData.confirmPassword) {
-                    setError('Passwords do not match');
-                    return;
-                }
                 await api.post('/auth/register', {
                     username: formData.username,
                     email: formData.email,
                     password: formData.password,
                 });
+                toast.success('Account created successfully! Please log in.');
+                // Switch to login mode
+                router.push('/login');
+            } else {
+                const response = await api.post('/auth/login', {
+                    username: formData.username,
+                    password: formData.password,
+                });
+
+                const { token, user } = response.data;
+                localStorage.setItem('token', token);
+                localStorage.setItem('user', JSON.stringify(user));
+                toast.success('Login successful!');
+                router.push('/chat');
             }
-
-            const response = await api.post('/auth/login', {
-                username: formData.username,
-                password: formData.password,
-            });
-
-            const { token, user } = response.data;
-            localStorage.setItem('token', token);
-            localStorage.setItem('user', JSON.stringify(user));
-
-            router.push('/chat');
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
             setError(err.response?.data?.message || 'An error occurred');
         } finally {
@@ -85,9 +121,10 @@ export default function AuthForm({ mode }: AuthFormProps) {
 
                 <form onSubmit={handleSubmit} className="space-y-6">
                     {mode === 'register' && (
+
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Email
+                                Email Address
                             </label>
                             <div className="relative">
                                 <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
@@ -102,6 +139,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
                                 />
                             </div>
                         </div>
+
                     )}
 
                     <div>
@@ -134,7 +172,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
                                 value={formData.password}
                                 onChange={handleChange}
                                 className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-gray-700"
-                                placeholder="Enter your password"
+                                placeholder="Enter your password (min 6 characters)"
                                 required
                             />
                             <button

@@ -2,11 +2,12 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Search, MessageCircle, Users, LogOut } from 'lucide-react';
+import { Search, MessageCircle, Users, LogOut, Plus } from 'lucide-react';
 import { Chat, User } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
+import toast from 'react-hot-toast';
 
 interface ChatSidebarProps {
   user: User;
@@ -177,6 +178,7 @@ export default function ChatSidebar({
                   }
                   localStorage.removeItem('token');
                   localStorage.removeItem('user');
+                  toast.success('Logged out successfully!');
                   router.push('/login');
                 }}
                 className="flex-1 py-2 px-4 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
@@ -187,6 +189,21 @@ export default function ChatSidebar({
           </motion.div>
         </div>
       )}
+
+      {/* Floating Action Button */}
+      <div className="absolute bottom-6 right-6">
+        <motion.button
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          className="w-14 h-14 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center transition-colors"
+          onClick={() => {
+            // TODO: Open new conversation modal
+            toast.success('New conversation feature coming soon!');
+          }}
+        >
+          <Plus className="w-6 h-6" />
+        </motion.button>
+      </div>
     </div>
   );
 }
