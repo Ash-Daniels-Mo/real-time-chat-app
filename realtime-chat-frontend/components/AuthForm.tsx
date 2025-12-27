@@ -82,8 +82,9 @@ export default function AuthForm({ mode }: AuthFormProps) {
                     password: formData.password,
                 });
 
-                const { token, user } = response.data;
-                localStorage.setItem('token', token);
+                const { access_token, user } = response.data;
+                localStorage.setItem('token', access_token);
+                console.log(access_token)
                 localStorage.setItem('user', JSON.stringify(user));
                 toast.success('Login successful!');
                 router.push('/chat');
