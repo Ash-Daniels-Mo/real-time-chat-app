@@ -140,10 +140,16 @@ def get_private_chats():
         other_user = db.session.get(User, other_user_id)
         unread = UnreadCount.query.filter_by(user_id=user_id, chat_id=chat.id).first()
         unread_count = unread.count if unread else 0
+        
+        # Get the last message
+        last_message = PrivateMessage.query.filter_by(chat_id=chat.id).order_by(PrivateMessage.timestamp.desc()).first()
+        last_message_data = last_message.to_dict() if last_message else None
+        
         chat_list.append({
             "chat_id": chat.id,
             "other_user": other_user.to_dict() if other_user else None,
-            "unread_count": unread_count
+            "unread_count": unread_count,
+            "last_message": last_message_data
         })
 
     return jsonify({"chats": chat_list}), 200

@@ -53,6 +53,14 @@ export default function ChatPage() {
         type: 'private' as const,
         participants: [user, chatData.other_user],
         unreadCount: chatData.unread_count,
+        lastMessage: chatData.last_message ? {
+          id: chatData.last_message.id.toString(),
+          content: chatData.last_message.content,
+          senderId: chatData.last_message.sender.id.toString(),
+          sender: chatData.last_message.sender,
+          timestamp: new Date(chatData.last_message.timestamp),
+          type: 'text' as const,
+        } : undefined,
       }));
       console.log(response.data)
       setChats(fetchedChats);
