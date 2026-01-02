@@ -23,7 +23,7 @@ export default function MessageBubble({ message, isOwn }: MessageBubbleProps) {
       isOwn ? "bg-blue-400 order-2 ml-2" : "bg-green-400 mr-2"
     )}>
       <span className="text-white font-semibold text-sm">
-        {message.sender.username.charAt(0).toUpperCase()}
+        {message.sender.username.charAt(0).toUpperCase()+message.sender.username.charAt(1).toUpperCase()}
       </span>
     </div>
   );

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import {  AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import { Send, Phone, Video, MoreVertical } from 'lucide-react';
 import { Chat, User, Message } from '@/lib/types';
 import MessageBubble from '@/components/MessageBubble';
@@ -138,8 +138,8 @@ export default function ChatWindow({ chat, user }: ChatWindowProps) {
             {chat.type === 'public' ? (
               <span className="text-gray-600 font-semibold">#</span>
             ) : (
-              <span className="text-gray-600 font-semibold">
-                {chat.name.charAt(0).toUpperCase()}
+              <span className="text-white font-semibold text-sm">
+                {chat.name.charAt(0).toUpperCase() + chat.name.charAt(1).toUpperCase()}
               </span>
             )}
           </div>

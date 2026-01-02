@@ -72,6 +72,7 @@ export default function ChatPage() {
   };
 
   const handleSelectChat = async (chat: Chat) => {
+    console.log('Selected chat:', chat);
     setSelectedChat(chat);
     if (chat.unreadCount > 0) {
       try {

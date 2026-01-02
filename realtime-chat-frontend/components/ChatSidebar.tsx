@@ -73,7 +73,7 @@ export default function ChatSidebar({
               <img src={user.avatar} alt={user.username} className="w-full h-full object-cover" />
             ) : (
               <span className="text-white font-semibold text-lg">
-                {user.username.charAt(0).toUpperCase()}
+                {user.username.charAt(0).toUpperCase()+user.username.charAt(1).toUpperCase()}
               </span>
             )}
           </div>
@@ -155,7 +155,9 @@ export default function ChatSidebar({
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <MessageCircle className="w-6 h-6 text-gray-600" />
+                     <span className="text-white font-semibold text-lg">
+                      {user.username.charAt(0).toUpperCase()+ user.username.charAt(1).toUpperCase()}
+                    </span>
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
