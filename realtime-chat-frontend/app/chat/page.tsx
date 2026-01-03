@@ -8,7 +8,8 @@ import ChatSidebar from '@/components/ChatSidebar';
 import ChatWindow from '@/components/ChatWindow';
 import { Chat, User } from '@/lib/types';
 import { api } from '@/lib/api';
-import { initializeSocket, disconnectSocket, getSocket, markChatAsRead } from '@/lib/socket';
+import { initializeSocket, disconnectSocket, getSocket, markChatAsRead, markPublicChatAsRead } from '@/lib/socket';
+import toast from 'react-hot-toast';
 
 export default function ChatPage() {
   const [user, setUser] = useState<User | null>(null);
@@ -52,18 +53,41 @@ export default function ChatPage() {
     const socket = getSocket();
     if (!socket) return;
 
-    // Handle new public messages
+    // Handle new public messages (for users in public room)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handleNewPublicMessage = (data: any) => {
       console.log('📬 New public message received in chat page:', data);
-      // Only increment unread if not currently viewing public chat
+      // This handler is for users who are in the public room
+      // Only increment unread count if not currently viewing public chat
       if (!selectedChat || selectedChat.type !== 'public') {
-        // Check if message is from another user
-        const senderId = data.user?.id?.toString();
-        if (String(senderId) !== String(user.id)) {
-          console.log('📬 Incrementing public unread count');
-          setPublicChatUnreadCount(prev => prev + 1);
+        setPublicChatUnreadCount(prev => prev + 1);
+        
+        // Show toast notification
+        const senderUsername = data.username || data.sender_username;
+        const content = data.content;
+        if (senderUsername && content) {
+          toast(`💬 ${senderUsername}: ${content.substring(0, 50)}`, {
+            icon: '📨',
+            duration: 4000,
+          });
         }
+      }
+    };
+
+    // Handle public message notification (for users not in public room)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const handlePublicMessageNotification = (data: any) => {
+      console.log('📬 Public message notification:', data);
+      const senderUsername = data.sender_username;
+      const content = data.content;
+      
+      // Only show toast and increment if not viewing public chat
+      if (!selectedChat || selectedChat.type !== 'public') {
+        toast(`💬 ${senderUsername}: ${content}`, {
+          icon: '📨',
+          duration: 4000,
+        });
+        setPublicChatUnreadCount(prev => prev + 1);
       }
     };
 
@@ -73,13 +97,31 @@ export default function ChatPage() {
       console.log('📬 Unread count update received:', data);
       const chatId = data.chat_id?.toString();
       const newUnreadCount = data.unread_count;
+      const senderUsername = data.other_username;
       
+      // Find the chat to get other user info for toast
+      const targetChat = chats.find(c => c.id === chatId);
+      const isCurrentChat = selectedChat?.id === chatId;
+      
+      // Show toast if not currently viewing this chat
+      if (targetChat && !isCurrentChat) {
+        const otherUser = targetChat.participants.find(p => String(p.id) !== String(user.id));
+        if (otherUser) {
+          toast(`💬 ${senderUsername || otherUser.username} sent you a message`, {
+            icon: '📨',
+            duration: 4000,
+          });
+        }
+      }
+      
+      // Update unread count
       setChats(prev => prev.map(chat => {
         if (chat.id === chatId) {
-          // Only update if not currently viewing this chat
-          if (selectedChat?.id === chat.id) {
+          // Don't update if currently viewing this chat
+          if (isCurrentChat) {
             return chat;
           }
+          
           console.log(`📬 Updating chat ${chatId} unread count to ${newUnreadCount}`);
           return { ...chat, unreadCount: newUnreadCount };
         }
@@ -87,14 +129,35 @@ export default function ChatPage() {
       }));
     };
 
+    // Handle read receipts (when someone reads your message)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const handleMessageReadReceipt = (data: any) => {
+      console.log('✅ Message read receipt:', data);
+      const readerUsername = data.reader_username;
+      const chatId = data.chat_id?.toString();
+      
+      // Find the chat to get the other user's info
+      const targetChat = chats.find(c => c.id === chatId);
+      if (targetChat) {
+        toast(`✅ ${readerUsername} read your message`, {
+          icon: '👁️',
+          duration: 3000,
+        });
+      }
+    };
+
     socket.on('new_public_message', handleNewPublicMessage);
+    socket.on('public_message_notification', handlePublicMessageNotification);
     socket.on('unread_count_update', handleUnreadCountUpdate);
+    socket.on('message_read_receipt', handleMessageReadReceipt);
 
     return () => {
       socket.off('new_public_message', handleNewPublicMessage);
+      socket.off('public_message_notification', handlePublicMessageNotification);
       socket.off('unread_count_update', handleUnreadCountUpdate);
+      socket.off('message_read_receipt', handleMessageReadReceipt);
     };
-  }, [user, selectedChat]);
+  }, [user, selectedChat, chats]);
 
   const fetchChats = async (user: User) => {
     if (!user) {
@@ -167,6 +230,9 @@ export default function ChatPage() {
       // Mark public chat as read by storing current timestamp
       localStorage.setItem('publicChatLastRead', new Date().toISOString());
       setPublicChatUnreadCount(0);
+      
+      // Notify backend that user opened public chat
+      markPublicChatAsRead();
     } else {
       // Reset unread count locally immediately
       setChats(prev => prev.map(c => c.id === chat.id ? { ...c, unreadCount: 0 } : c));
@@ -180,7 +246,7 @@ export default function ChatPage() {
         }
       }
       
-      // Mark as read via Socket.IO (updates backend unread count in real-time)
+      // Mark as read via Socket.IO (updates backend unread count in real-time and sends read receipt)
       markChatAsRead(chat.id);
     }
   };

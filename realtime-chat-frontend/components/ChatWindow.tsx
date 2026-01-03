@@ -266,6 +266,16 @@ export default function ChatWindow({ chat, user }: ChatWindowProps) {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+  
+  // Scroll to bottom when chat changes (opening a new chat)
+  useEffect(() => {
+    if (chat) {
+      // Small delay to ensure messages are loaded
+      setTimeout(() => {
+        scrollToBottom();
+      }, 100);
+    }
+  }, [chat]);
 
   if (!chat) {
     return (

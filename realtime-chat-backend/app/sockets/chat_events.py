@@ -134,7 +134,6 @@ def handle_send_public_message(data):
         return
 
     try:
-        # Create message in database
         message = Message(
             content=content,
             user_id=user_info['user_id']
@@ -142,12 +141,23 @@ def handle_send_public_message(data):
         db.session.add(message)
         db.session.commit()
 
-        # Get message with user info
         message_data = message.to_dict()
         message_data['username'] = user_info['username']
 
         # Broadcast to all in public room
         emit('new_public_message', message_data, room=public_room)
+        
+        # Emit unread count notification only to users NOT in the public room
+        for sid, other_user_info in connected_users.items():
+            # Only notify users who are NOT in the public room and are not the sender
+            if other_user_info['user_id'] != user_info['user_id'] and public_room not in other_user_info['rooms']:
+                other_user_room = f"user_{other_user_info['user_id']}"
+                emit('public_message_notification', {
+                    'sender_id': user_info['user_id'],
+                    'sender_username': user_info['username'],
+                    'content': content[:50],  # First 50 chars for preview
+                    'timestamp': message_data['timestamp']
+                }, room=other_user_room)
 
         print(f"Public message from {user_info['username']}: {content}")
 
@@ -262,7 +272,6 @@ def handle_send_private_message(data):
         return
 
     try:
-        # Create private message in database
         message = PrivateMessage(
             content=content,
             sender_id=user_info['user_id'],
@@ -340,10 +349,27 @@ def handle_mark_chat_read(data):
         
         # Reset unread count for this user and chat
         unread = UnreadCount.query.filter_by(user_id=user_info['user_id'], chat_id=chat_id).first()
+        had_unread_messages = unread and unread.count > 0
+        
         if unread:
             unread.count = 0
             db.session.commit()
             print(f"User {user_info['username']} marked chat {chat_id} as read")
+        
+        # Only send read receipt if there were unread messages
+        if had_unread_messages:
+            # Get the chat to find the other user
+            chat = db.session.get(PrivateChat, chat_id)
+            if chat:
+                other_user_id = chat.user1_id if chat.user2_id == user_info['user_id'] else chat.user2_id
+                
+                # Notify the other user that their message was seen
+                other_user_room = f"user_{other_user_id}"
+                emit('message_read_receipt', {
+                    'chat_id': chat_id,
+                    'reader_username': user_info['username'],
+                    'reader_id': user_info['user_id']
+                }, room=other_user_room)
         
         emit('chat_marked_read', {'chat_id': chat_id})
         
@@ -351,3 +377,13 @@ def handle_mark_chat_read(data):
         db.session.rollback()
         emit('error', {'message': 'Failed to mark chat as read'})
         print(f"Error marking chat as read: {e}")
+
+@socketio.on('mark_public_read')
+def handle_mark_public_read():
+    """Mark public chat as read for the current user"""
+    if request.sid not in connected_users:
+        return
+
+    user_info = connected_users[request.sid]
+    print(f"User {user_info['username']} marked public chat as read")
+    emit('public_chat_marked_read')

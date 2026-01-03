@@ -126,3 +126,12 @@ export const markChatAsRead = (chatId: string | number) => {
   console.log('📤 Marking chat as read:', chatId);
   socket.emit('mark_chat_read', { chat_id: chatId });
 };
+
+export const markPublicChatAsRead = () => {
+  if (!socket?.connected) {
+    console.error('❌ Socket not connected. Cannot mark public chat as read');
+    return;
+  }
+  console.log('📤 Marking public chat as read');
+  socket.emit('mark_public_read');
+};
