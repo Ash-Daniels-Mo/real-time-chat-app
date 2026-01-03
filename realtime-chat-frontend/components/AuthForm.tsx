@@ -9,10 +9,7 @@ import { cn } from '@/lib/utils';
 import { api } from '@/lib/api';
 import { uploadToCloudinary } from '@/lib/cloudinary';
 import toast from 'react-hot-toast';
-
-interface AuthFormProps {
-    mode: 'login' | 'register';
-}
+import { AuthFormProps } from '@/lib/types';
 
 export default function AuthForm({ mode }: AuthFormProps) {
     const [formData, setFormData] = useState({
@@ -36,6 +33,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
                 setFormData(prev => ({ ...prev, avatarUrl: url }));
                 toast.success('Avatar uploaded successfully!');
             }
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (error) {
             toast.error('Failed to upload avatar');
         } finally {

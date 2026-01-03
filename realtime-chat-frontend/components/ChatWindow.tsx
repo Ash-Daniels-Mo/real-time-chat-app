@@ -3,16 +3,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { Send, Phone, Video, MoreVertical } from 'lucide-react';
-import { Chat, User, Message } from '@/lib/types';
+import { Message, ChatWindowProps } from '@/lib/types';
 import MessageBubble from '@/components/MessageBubble';
 import MessageInput from '@/components/MessageInput';
 import { api } from '@/lib/api';
 import { formatDateLabel, isDifferentDay } from '@/lib/utils';
-
-interface ChatWindowProps {
-  chat: Chat | null;
-  user: User;
-}
 
 export default function ChatWindow({ chat, user }: ChatWindowProps) {
   const [messages, setMessages] = useState<Message[]>([]);

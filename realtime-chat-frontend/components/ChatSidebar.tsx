@@ -4,21 +4,11 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Search, MessageCircle, Users, LogOut, Plus } from 'lucide-react';
-import { Chat, User } from '@/lib/types';
+import { Chat, ChatSidebarProps, User } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import toast from 'react-hot-toast';
-
-interface ChatSidebarProps {
-  user: User;
-  chats: Chat[];
-  selectedChat: Chat | null;
-  onSelectChat: (chat: Chat) => void;
-  onClose?: () => void;
-  loadingChats?: boolean;
-  publicChatUnreadCount?: number;
-}
 
 export default function ChatSidebar({
   user,

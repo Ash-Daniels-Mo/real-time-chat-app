@@ -4,13 +4,8 @@ import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Send, Paperclip, X } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
-import { Chat } from '@/lib/types';
+import { MessageInputProps } from '@/lib/types';
 import { cn } from '@/lib/utils';
-
-interface MessageInputProps {
-  chat: Chat;
-  onSendMessage: (content: string, files?: { name: string; size: number; type: string; url: string; thumbnail?: string }[]) => void;
-}
 
 export default function MessageInput({ chat, onSendMessage }: MessageInputProps) {
   const [message, setMessage] = useState('');

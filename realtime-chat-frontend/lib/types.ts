@@ -51,3 +51,26 @@ export interface MessageBubbleProps {
   isOwn: boolean;
   isPrivate: boolean;
 }
+
+export interface ChatSidebarProps {
+  user: User;
+  chats: Chat[];
+  selectedChat: Chat | null;
+  onSelectChat: (chat: Chat) => void;
+  onClose?: () => void;
+  loadingChats?: boolean;
+  publicChatUnreadCount?: number;
+}
+
+export interface AuthFormProps {
+    mode: 'login' | 'register';
+}
+
+export interface ChatWindowProps {
+  chat: Chat | null;
+  user: User;
+}
+export interface MessageInputProps {
+  chat: Chat;
+  onSendMessage: (content: string, files?: { name: string; size: number; type: string; url: string; thumbnail?: string }[]) => void;
+}
