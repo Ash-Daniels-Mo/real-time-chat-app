@@ -8,7 +8,9 @@ import { Chat, ChatSidebarProps, User } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
-import toast from 'react-hot-toast';import Avatar from '@/components/Avatar';
+import toast from 'react-hot-toast';
+import Avatar from '@/components/Avatar';
+import { disconnectSocket } from '@/lib/socket';
 export default function ChatSidebar({
   user,
   chats,
@@ -211,6 +213,8 @@ export default function ChatSidebar({
                   } catch (error) {
                     toast.error('Logout failed on server');
                   }
+                  // Disconnect socket before clearing storage
+                  disconnectSocket();
                   localStorage.removeItem('token');
                   localStorage.removeItem('user');
                   toast.success('Logged out successfully!');

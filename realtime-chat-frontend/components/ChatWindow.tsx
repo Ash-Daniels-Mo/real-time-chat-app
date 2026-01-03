@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -9,13 +10,45 @@ import MessageInput from '@/components/MessageInput';
 import Avatar from '@/components/Avatar';
 import { api } from '@/lib/api';
 import { formatDateLabel, isDifferentDay } from '@/lib/utils';
+import { 
+  initializeSocket, 
+  getSocket, 
+  joinPublicChat, 
+  leavePublicChat,
+  joinPrivateChat,
+  leavePrivateChat,
+  sendPublicMessage,
+  sendPrivateMessage,
+} from '@/lib/socket';
+import toast from 'react-hot-toast';
 
 export default function ChatWindow({ chat, user }: ChatWindowProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [totalUsers, setTotalUsers] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const socketRef = useRef(getSocket());
 
+  // Initialize socket connection
+  useEffect(() => {
+    if (!socketRef.current) {
+      socketRef.current = initializeSocket();
+    }
+
+    return () => {
+      // Cleanup on unmount
+      if (chat?.type === 'public') {
+        leavePublicChat();
+      } else if (chat?.type === 'private') {
+        const otherUser = chat.participants.find(p => p.id !== user.id);
+        if (otherUser) {
+          leavePrivateChat(otherUser.id);
+        }
+      }
+    };
+  }, []);
+
+  // Fetch initial messages
   useEffect(() => {
     const fetchMessages = async () => {
       if (!chat) {
@@ -83,6 +116,137 @@ export default function ChatWindow({ chat, user }: ChatWindowProps) {
     };
 
     fetchMessages();
+  }, [chat, user]);
+
+  // Socket.IO event handlers for real-time messaging
+  useEffect(() => {
+    const socket = socketRef.current;
+    if (!socket || !chat) {
+      console.log('⚠️ Skipping socket setup - socket or chat is null');
+      return;
+    }
+
+    console.log('🔵 Setting up socket listeners for chat:', chat.name, 'Connected:', socket.connected);
+
+    // Join appropriate chat room
+    if (chat.type === 'public') {
+      console.log('🔵 Joining public chat');
+      joinPublicChat();
+    } else {
+      const otherUser = chat.participants.find(p => p.id !== user.id);
+      if (otherUser) {
+        console.log('🔵 Joining private chat with user:', otherUser.id);
+        joinPrivateChat(otherUser.id);
+      }
+    }
+
+    // Handle incoming public messages
+    const handleNewPublicMessage = (data: any) => {
+      console.log('📨 Received new public message:', data);
+      
+      const newMessage: Message = {
+        id: data.id?.toString() || `msg-${Date.now()}`,
+        content: data.content,
+        senderId: data.user_id?.toString() || data.sender_id?.toString(),
+        sender: {
+          id: data.user_id?.toString() || data.sender_id?.toString(),
+          username: data.username || 'Unknown',
+          email: '',
+          avatar: undefined,
+        },
+        timestamp: data.timestamp ? new Date(data.timestamp) : new Date(),
+        type: 'text',
+      };
+
+      setMessages(prev => {
+        // Avoid duplicates
+        if (prev.some(msg => msg.id === newMessage.id)) {
+          return prev;
+        }
+        return [...prev, newMessage];
+      });
+    };
+
+    // Handle incoming private messages
+    const handleNewPrivateMessage = (data: any) => {
+      console.log('Received new private message:', data);
+      
+      const newMessage: Message = {
+        id: data.id?.toString() || `msg-${Date.now()}`,
+        content: data.content,
+        senderId: data.sender_id?.toString(),
+        sender: {
+          id: data.sender_id?.toString(),
+          username: data.username || 'Unknown',
+          email: '',
+          avatar: undefined,
+        },
+        timestamp: data.timestamp ? new Date(data.timestamp) : new Date(),
+        type: 'text',
+      };
+
+      setMessages(prev => {
+        // Avoid duplicates
+        if (prev.some(msg => msg.id === newMessage.id)) {
+          return prev;
+        }
+        return [...prev, newMessage];
+      });
+    };
+
+    // Handle user joined/left notifications
+    const handleUserJoined = (data: any) => {
+      toast.success(data.message || `${data.username} joined the chat`);
+    };
+
+    const handleUserLeft = (data: any) => {
+      toast(`${data.username} left the chat`, { icon: '👋' });
+    };
+
+    // Handle connection events
+    const handleConnected = (data: any) => {
+      console.log('Connected to chat:', data);
+    };
+
+    const handleJoinedPrivate = (data: any) => {
+      console.log('Joined private chat:', data);
+    };
+
+    // Handle errors
+    const handleError = (data: any) => {
+      console.error('Socket error:', data);
+      toast.error(data.message || 'An error occurred');
+    };
+
+    // Register event listeners
+    socket.on('connected', handleConnected);
+    socket.on('new_public_message', handleNewPublicMessage);
+    socket.on('new_private_message', handleNewPrivateMessage);
+    socket.on('user_joined', handleUserJoined);
+    socket.on('user_left', handleUserLeft);
+    socket.on('joined_private', handleJoinedPrivate);
+    socket.on('error', handleError);
+
+    // Cleanup listeners on chat change or unmount
+    return () => {
+      socket.off('connected', handleConnected);
+      socket.off('new_public_message', handleNewPublicMessage);
+      socket.off('new_private_message', handleNewPrivateMessage);
+      socket.off('user_joined', handleUserJoined);
+      socket.off('user_left', handleUserLeft);
+      socket.off('joined_private', handleJoinedPrivate);
+      socket.off('error', handleError);
+
+      // Leave current room
+      if (chat.type === 'public') {
+        leavePublicChat();
+      } else {
+        const otherUser = chat.participants.find(p => p.id !== user.id);
+        if (otherUser) {
+          leavePrivateChat(otherUser.id);
+        }
+      }
+    };
   }, [chat, user]);
 
   const scrollToBottom = () => {
@@ -192,25 +356,25 @@ export default function ChatWindow({ chat, user }: ChatWindowProps) {
         <MessageInput
           chat={chat}
           onSendMessage={(content, processedFiles) => {
-            const newMessages: Message[] = [];
-
-            // Add text message if content exists
+            // Send message via Socket.IO
             if (content.trim()) {
-              newMessages.push({
-                id: `msg-${Date.now()}-text`,
-                content,
-                senderId: user.id,
-                sender: user,
-                timestamp: new Date(),
-                type: 'text',
-              });
+              if (chat.type === 'public') {
+                console.log('📤 Sending public message');
+                sendPublicMessage(content);
+              } else {
+                const otherUser = chat.participants.find(p => p.id !== user.id);
+                if (otherUser) {
+                  console.log('📤 Sending private message to:', otherUser.id);
+                  sendPrivateMessage(otherUser.id, content);
+                }
+              }
             }
 
-            // Add file messages
-            processedFiles?.forEach((fileData, index) => {
-              newMessages.push({
+            // Handle file messages (kept for local preview)
+            if (processedFiles && processedFiles.length > 0) {
+              const fileMessages: Message[] = processedFiles.map((fileData, index) => ({
                 id: `msg-${Date.now()}-file-${index}`,
-                content: '', // Files don't have content, but if text and image, we could combine
+                content: '',
                 senderId: user.id,
                 sender: user,
                 timestamp: new Date(),
@@ -223,10 +387,10 @@ export default function ChatWindow({ chat, user }: ChatWindowProps) {
                   url: fileData.url,
                   thumbnail: fileData.thumbnail,
                 },
-              });
-            });
+              }));
 
-            setMessages(prev => [...prev, ...newMessages]);
+              setMessages(prev => [...prev, ...fileMessages]);
+            }
           }}
         />
       </div>

@@ -8,6 +8,7 @@ import ChatSidebar from '@/components/ChatSidebar';
 import ChatWindow from '@/components/ChatWindow';
 import { Chat, User } from '@/lib/types';
 import { api } from '@/lib/api';
+import { initializeSocket, disconnectSocket } from '@/lib/socket';
 
 export default function ChatPage() {
   const [user, setUser] = useState<User | null>(null);
@@ -33,9 +34,17 @@ export default function ChatPage() {
     setUser({ ...parsedUser, avatar: parsedUser.avatar_url });
     console.log('Logged in user:', parsedUser);
 
+    // Initialize Socket.IO connection
+    initializeSocket();
+
     // Fetch chats
     fetchChats(parsedUser);
     // console.log('Fetching chats for user:', parsedUser.id);
+
+    // Cleanup on unmount
+    return () => {
+      disconnectSocket();
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
