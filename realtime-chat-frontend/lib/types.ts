@@ -44,3 +44,10 @@ export interface AuthState {
   token: string | null;
   isAuthenticated: boolean;
 }
+
+
+export interface MessageBubbleProps {
+  message: Message;
+  isOwn: boolean;
+  isPrivate: boolean;
+}

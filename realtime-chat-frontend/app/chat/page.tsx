@@ -16,6 +16,7 @@ export default function ChatPage() {
   const [loadingChats, setLoadingChats] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(410); // default width
+  const [publicChatUnreadCount, setPublicChatUnreadCount] = useState(0);
   const router = useRouter();
 
   useEffect(() => {
@@ -35,6 +36,7 @@ export default function ChatPage() {
     // Fetch chats
     fetchChats(parsedUser);
     // console.log('Fetching chats for user:', parsedUser.id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
   const fetchChats = async (user: User) => {
@@ -47,6 +49,7 @@ export default function ChatPage() {
     try {
       // console.log("In try")
       const response = await api.get('/chats');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const fetchedChats: Chat[] = response.data.chats.map((chatData: any) => ({
         id: chatData.chat_id.toString(),
         name: chatData.other_user.username,
@@ -64,6 +67,9 @@ export default function ChatPage() {
       }));
       console.log(response.data)
       setChats(fetchedChats);
+      
+      // Fetch public chat unread count
+      await fetchPublicChatUnreadCount();
     } catch (error) {
       console.error('Failed to fetch chats:', error);
     } finally {
@@ -71,10 +77,44 @@ export default function ChatPage() {
     }
   };
 
+  const fetchPublicChatUnreadCount = async () => {
+    try {
+      const response = await api.get('/messages');
+      const messages = response.data.messages;
+      
+      if (messages.length === 0) {
+        setPublicChatUnreadCount(0);
+        return;
+      }
+
+      // Get last read timestamp from localStorage
+      const lastReadTimestamp = localStorage.getItem('publicChatLastRead');
+      
+      if (!lastReadTimestamp) {
+        // If never read, all messages are unread
+        setPublicChatUnreadCount(messages.length);
+      } else {
+        // Count messages after last read
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const unreadCount = messages.filter((msg: any) => 
+          new Date(msg.timestamp) > new Date(lastReadTimestamp)
+        ).length;
+        setPublicChatUnreadCount(unreadCount);
+      }
+    } catch (error) {
+      console.error('Failed to fetch public chat unread count:', error);
+    }
+  };
+
   const handleSelectChat = async (chat: Chat) => {
     console.log('Selected chat:', chat);
     setSelectedChat(chat);
-    if (chat.unreadCount > 0) {
+    
+    if (chat.type === 'public') {
+      // Mark public chat as read by storing current timestamp
+      localStorage.setItem('publicChatLastRead', new Date().toISOString());
+      setPublicChatUnreadCount(0);
+    } else if (chat.unreadCount > 0) {
       try {
         await api.post(`/chats/${chat.id}/read`);
         // Update the chat's unread count locally
@@ -136,6 +176,7 @@ export default function ChatPage() {
           onSelectChat={handleSelectChat}
           onClose={() => setSidebarOpen(false)}
           loadingChats={loadingChats}
+          publicChatUnreadCount={publicChatUnreadCount}
         />
         {/* Resize handle */}
         <div
@@ -189,6 +230,7 @@ export default function ChatPage() {
           }}
           onClose={() => setSidebarOpen(false)}
           loadingChats={loadingChats}
+          publicChatUnreadCount={publicChatUnreadCount}
         />
       </motion.div>
 

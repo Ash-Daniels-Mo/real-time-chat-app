@@ -2,29 +2,32 @@
 
 import { FileText, File } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { format } from 'date-fns';
 import Image from 'next/image';
-import { Message, FileData } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import { Message, FileData, MessageBubbleProps } from '@/lib/types';
+import { cn, formatTime } from '@/lib/utils';
 
-interface MessageBubbleProps {
-  message: Message;
-  isOwn: boolean;
-}
 
-export default function MessageBubble({ message, isOwn }: MessageBubbleProps) {
-  const formatTime = (date: Date) => {
-    return format(new Date(date), 'HH:mm');
-  };
+export default function MessageBubble({ message, isOwn, isPrivate }: MessageBubbleProps) {
 
   const avatar = (
     <div className={cn(
       "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mx-2",
       isOwn ? "bg-blue-400 order-2 ml-2" : "bg-green-400 mr-2"
     )}>
-      <span className="text-white font-semibold text-sm">
-        {message.sender.username.charAt(0).toUpperCase()+message.sender.username.charAt(1).toUpperCase()}
-      </span>
+      {message.sender.avatar ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={message.sender.avatar}
+          alt={message.sender.username}
+          width={32}
+          height={32}
+          className="w-8 h-8 rounded-full object-cover"
+        />
+      ) : (
+        <span className="text-white font-semibold text-sm">
+          {message.sender.username.charAt(0).toUpperCase()+message.sender.username.charAt(1).toUpperCase()}
+        </span>
+      )}
     </div>
   );
 
@@ -46,6 +49,9 @@ export default function MessageBubble({ message, isOwn }: MessageBubbleProps) {
             ? "bg-message-sent text-white rounded-br-sm"
             : "bg-message-received text-white rounded-bl-sm"
         )}>
+           <div className="text-xs font-semibold mb-1 text-green-200">
+              {message.sender.username}
+            </div>
           <FileAttachment file={message.file!} />
           <div className={cn(
             "text-xs mt-1",
@@ -75,6 +81,11 @@ export default function MessageBubble({ message, isOwn }: MessageBubbleProps) {
           ? "bg-message-sent text-white rounded-br-sm"
           : "bg-message-received text-white rounded-bl-sm"
       )}>
+        {!isOwn && !isPrivate && (
+          <div className="text-xs font-semibold mb-1 text-green-200">
+            {message.sender.username}
+          </div>
+        )}
         <p className="text-sm leading-relaxed break-words">
           {message.content}
         </p>

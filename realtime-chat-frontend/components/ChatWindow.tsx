@@ -6,6 +6,8 @@ import { Send, Phone, Video, MoreVertical } from 'lucide-react';
 import { Chat, User, Message } from '@/lib/types';
 import MessageBubble from '@/components/MessageBubble';
 import MessageInput from '@/components/MessageInput';
+import { api } from '@/lib/api';
+import { formatDateLabel, isDifferentDay } from '@/lib/utils';
 
 interface ChatWindowProps {
   chat: Chat | null;
@@ -14,93 +16,77 @@ interface ChatWindowProps {
 
 export default function ChatWindow({ chat, user }: ChatWindowProps) {
   const [messages, setMessages] = useState<Message[]>([]);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [totalUsers, setTotalUsers] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (chat) {
-      // Mock messages for demonstration
-      const mockMessages: Message[] = [
-        {
-          id: 'msg-1',
-          content: 'Hey there! How are you doing?',
-          senderId: chat.participants.find(p => p.id !== user.id)?.id || 'other',
-          sender: chat.participants.find(p => p.id !== user.id) || {
-            id: 'other',
-            username: 'Other User',
-            email: 'other@example.com'
-          },
-          timestamp: new Date(Date.now() - 1000 * 60 * 10),
-          type: 'text',
-        },
-        {
-          id: 'msg-2',
-          content: 'I\'m doing great! Just working on some new features.',
-          senderId: user.id,
-          sender: user,
-          timestamp: new Date(Date.now() - 1000 * 60 * 8),
-          type: 'text',
-        },
-        {
-          id: 'msg-3',
-          content: 'Check out this image!',
-          senderId: chat.participants.find(p => p.id !== user.id)?.id || 'other',
-          sender: chat.participants.find(p => p.id !== user.id) || {
-            id: 'other',
-            username: 'Other User',
-            email: 'other@example.com'
-          },
-          timestamp: new Date(Date.now() - 1000 * 60 * 6),
-          type: 'text',
-        },
-        {
-          id: 'msg-4',
-          content: '',
-          senderId: chat.participants.find(p => p.id !== user.id)?.id || 'other',
-          sender: chat.participants.find(p => p.id !== user.id) || {
-            id: 'other',
-            username: 'Other User',
-            email: 'other@example.com'
-          },
-          timestamp: new Date(Date.now() - 1000 * 60 * 5),
-          type: 'file',
-          file: {
-            id: 'file-1',
-            name: 'sample-image.jpg',
-            size: 1024 * 1024 * 2, // 2MB
-            type: 'image/jpeg',
-            url: 'https://placehold.net/4.png', // Placeholder image
-            thumbnail: 'https://placehold.net/4.png',
-          },
-        },
-        {
-          id: 'msg-5',
-          content: 'Here\'s a document for you.',
-          senderId: user.id,
-          sender: user,
-          timestamp: new Date(Date.now() - 1000 * 60 * 3),
-          type: 'text',
-        },
-        {
-          id: 'msg-6',
-          content: '',
-          senderId: user.id,
-          sender: user,
-          timestamp: new Date(Date.now() - 1000 * 60 * 2),
-          type: 'file',
-          file: {
-            id: 'file-2',
-            name: 'document.pdf',
-            size: 1024 * 1024 * 5, // 5MB
-            type: 'application/pdf',
-            url: '#', // Placeholder
-          },
-        },
-      ];
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setMessages(mockMessages);
-    } else {
-      setMessages([]);
-    }
+    const fetchMessages = async () => {
+      if (!chat) {
+        setMessages([]);
+        return;
+      }
+
+      setLoadingMessages(true);
+      try {
+        if (chat.type === 'public') {
+          // Fetch public messages
+          const response = await api.get('/messages');
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const fetchedMessages: Message[] = response.data.messages.map((msg: any) => ({
+            id: msg.id.toString(),
+            content: msg.content,
+            senderId: msg.user.id.toString(),
+            sender: {
+              id: msg.user.id.toString(),
+              username: msg.user.username,
+              email: '',
+              avatar: msg.user.avatar_url,
+            },
+            timestamp: new Date(msg.timestamp),
+            type: 'text' as const,
+          }));
+          setMessages(fetchedMessages);
+          
+          // Fetch total users count for public chat
+          try {
+            const usersResponse = await api.get('/users/');
+            setTotalUsers(usersResponse.data.users.length);
+          } catch (error) {
+            console.error('Failed to fetch users count:', error);
+            setTotalUsers(1);
+          }
+        } else {
+          // Fetch private messages
+          const otherUser = chat.participants.find(p => p.id !== user.id);
+          if (otherUser) {
+            const response = await api.get(`/messages/private/${otherUser.id}`);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const fetchedMessages: Message[] = response.data.messages.map((msg: any) => ({
+              id: msg.id.toString(),
+              content: msg.content,
+              senderId: msg.sender.id.toString(),
+              sender: {
+                id: msg.sender.id.toString(),
+                username: msg.sender.username,
+                email: '',
+                avatar: msg.sender.avatar_url,
+              },
+              timestamp: new Date(msg.timestamp),
+              type: 'text' as const,
+            }));
+            setMessages(fetchedMessages);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch messages:', error);
+        setMessages([]);
+      } finally {
+        setLoadingMessages(false);
+      }
+    };
+
+    fetchMessages();
   }, [chat, user]);
 
   const scrollToBottom = () => {
@@ -128,6 +114,7 @@ export default function ChatWindow({ chat, user }: ChatWindowProps) {
       </div>
     );
   }
+  console.log("Rendering ChatWindow for chat:", chat);
 
   return (
     <div className="flex-1 flex flex-col bg-gray-500 h-full overflow-hidden">
@@ -147,7 +134,7 @@ export default function ChatWindow({ chat, user }: ChatWindowProps) {
             <h3 className="font-semibold text-gray-900">{chat.name}</h3>
             <p className="text-sm text-gray-500">
               {chat.type === 'public'
-                ? `${chat.participants.length} members`
+                ? `${totalUsers} members`
                 : 'Private chat'
               }
             </p>
@@ -169,15 +156,39 @@ export default function ChatWindow({ chat, user }: ChatWindowProps) {
       {/* Messages */}
       <div className="flex-1 min-h-0 overflow-y-auto p-4 chat-scrollbar">
         <div className="max-w-4xl mx-auto space-y-4">
-          <AnimatePresence>
-            {messages.map((message) => (
-              <MessageBubble
-                key={message.id}
-                message={message}
-                isOwn={message.senderId === user.id}
-              />
-            ))}
-          </AnimatePresence>
+          {loadingMessages ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            </div>
+          ) : (
+            <AnimatePresence>
+              {messages.map((message, index) => {
+                const showDateSeparator =
+                  index === 0 ||
+                  isDifferentDay(
+                    new Date(messages[index - 1].timestamp),
+                    new Date(message.timestamp)
+                  );
+
+                return (
+                  <div key={message.id}>
+                    {showDateSeparator && (
+                      <div className="flex items-center justify-center my-4">
+                        <div className="bg-gray-200 text-gray-600 text-xs font-medium px-3 py-1 rounded-full shadow-sm">
+                          {formatDateLabel(new Date(message.timestamp))}
+                        </div>
+                      </div>
+                    )}
+                    <MessageBubble
+                      message={message}
+                      isOwn={message.senderId === user.id}
+                      isPrivate={chat.type === 'private'}
+                    />
+                  </div>
+                );
+              })}
+            </AnimatePresence>
+          )}
         </div>
         <div ref={messagesEndRef} />
       </div>

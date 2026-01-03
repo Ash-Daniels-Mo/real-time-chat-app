@@ -17,6 +17,7 @@ interface ChatSidebarProps {
   onSelectChat: (chat: Chat) => void;
   onClose?: () => void;
   loadingChats?: boolean;
+  publicChatUnreadCount?: number;
 }
 
 export default function ChatSidebar({
@@ -26,6 +27,7 @@ export default function ChatSidebar({
   onSelectChat,
   onClose,
   loadingChats = false,
+  publicChatUnreadCount = 0,
 }: ChatSidebarProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -39,6 +41,7 @@ export default function ChatSidebar({
     try {
       const response = await api.get('/users/');
       console.log(response);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setAllUsers(response.data.users.map((u: any) => ({ ...u, avatar: u.avatar_url })).filter((u: User) => u.id !== user.id)); // Exclude current user
       setShowUsersModal(true);
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -57,8 +60,8 @@ export default function ChatSidebar({
     id: 'public',
     name: 'Public Chat',
     type: 'public',
-    participants: [],
-    unreadCount: 0,
+    participants: [user],
+    unreadCount: publicChatUnreadCount,
   };
 
   const allChats = [publicChat, ...filteredChats];
@@ -150,7 +153,7 @@ export default function ChatSidebar({
                     <Users className="w-6 h-6 text-gray-600" />
                   ) : chat.participants.find(p => p.id !== user.id)?.avatar ? (
                     <img
-                      src={chat.participants.find(p => p.id !== user.id)?.avatar}
+                      src={chat.participants.find(p => p.id !== user.id)?.avatar || ''}
                       alt={chat.name}
                       className="w-full h-full object-cover"
                     />

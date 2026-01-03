@@ -24,6 +24,7 @@ class Message(db.Model):
             "timestamp": self.timestamp.isoformat(),
             "user": {
                 "id": self.user.id,
-                "username": self.user.username
+                "username": self.user.username,
+                'avatar_url': self.user.avatar_url
             }
         }
