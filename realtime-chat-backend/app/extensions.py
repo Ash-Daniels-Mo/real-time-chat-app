@@ -14,4 +14,15 @@ def init_extensions(app):
     migrate.init_app(app, db) 
     jwt.init_app(app)
     socketio.init_app(app)
-    CORS(app, origins=["https://real-time-chat-app-frontend-q0ta.onrender.com", "http://localhost:3000"])
+    CORS(
+        app,
+        resources={r"/*": {
+            "origins": [
+                "https://real-time-chat-app-frontend-q0ta.onrender.com",
+                "http://localhost:3000"
+            ]
+        }},
+        supports_credentials=True,
+        allow_headers=["Content-Type", "Authorization"],
+        methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+    )
