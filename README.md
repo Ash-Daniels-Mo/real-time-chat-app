@@ -49,7 +49,11 @@ This project is a real-time chat application with file-sharing capabilities. It 
    pip install -r requirements.txt
 
    ```
-4. Create .env file at the root in the backend folder and add the env variables DATABASE_URL and SECRET_KEY
+4. Create .env file at the root in the backend folder and add the env variables as follows:
+
+   ```bash
+   DATABASE_URL and SECRET_KEY
+   ```
 
 5. Run tests:
    ```bash
