@@ -7,7 +7,7 @@ from flask_jwt_extended import JWTManager
 db = SQLAlchemy()
 migrate = Migrate()
 jwt = JWTManager()
-socketio = SocketIO(cors_allowed_origins="*", async_mode="eventlet")
+socketio = SocketIO(cors_allowed_origins="*")
 
 def init_extensions(app):
     db.init_app(app)
@@ -18,7 +18,8 @@ def init_extensions(app):
         app,
         origins=[
                 "https://real-time-chat-app-frontend-q0ta.onrender.com",
-                "http://localhost:3000"
+                "http://localhost:3000",
+                "http://localhost:3001"
             ],
         supports_credentials=True,
         allow_headers=["Content-Type", "Authorization"],

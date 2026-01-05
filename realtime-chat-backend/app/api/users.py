@@ -49,6 +49,30 @@ def update_auth_user():
                         "email": user.email},
                     }), 200
 
+@user_bp.route("/auth-user/change-password", methods=["POST"])
+@jwt_required()
+def change_password():
+
+    data = request.get_json()
+    user_id = get_jwt_identity()
+    user = db.session.get(User, user_id)
+    if not user:
+        return jsonify({"message": "User not found"}), 404
+
+    current_password = data.get("current_password")
+    new_password = data.get("new_password")
+
+    if not current_password or not new_password:
+        return jsonify({"message": "Current and new password are required"}), 400
+
+    if not user.check_password(current_password):
+        return jsonify({"message": "Current password is incorrect"}), 401
+
+    user.set_password(new_password)
+    db.session.commit()
+
+    return jsonify({"message": "Password changed successfully"}), 200
+
 @user_bp.route("/<int:user_id>", methods=["DELETE"])
 def delete_user(user_id):
 
