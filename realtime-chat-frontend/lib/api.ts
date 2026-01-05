@@ -42,3 +42,27 @@ export const saveFile = async (data: {
   const response = await api.post('/files/', data);
   return response.data;
 };
+
+// Auth user profile
+export const getAuthUser = async () => {
+  const response = await api.get('/users/auth-user');
+  return response.data.user;
+};
+
+export const updateAuthUser = async (data: {
+  username?: string;
+  email?: string;
+  avatar_url?: string;
+  password?: string;
+}) => {
+  const response = await api.put('/users/auth-user', data);
+  return response.data.user;
+};
+
+export const changePassword = async (currentPassword: string, newPassword: string) => {
+  const response = await api.post('/users/auth-user/change-password', {
+    current_password: currentPassword,
+    new_password: newPassword,
+  });
+  return response.data;
+};
