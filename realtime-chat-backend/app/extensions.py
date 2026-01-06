@@ -19,7 +19,8 @@ def init_extensions(app):
         origins=[
                 "https://real-time-chat-app-frontend-q0ta.onrender.com",
                 "http://localhost:3000",
-                "http://localhost:3001"
+                "http://localhost:3001",
+                "https://real-time-chat-app-3-ln38.onrender.com"
             ],
         supports_credentials=True,
         allow_headers=["Content-Type", "Authorization"],
